@@ -11,7 +11,7 @@ import networkx as nx
 from networkx.algorithms import bipartite
 # import planarity testing library
 from networkx.algorithms.planarity import check_planarity
-from itertools import combinations, product
+import itertools as it
 import matplotlib.pyplot as plt
 import random
 
@@ -20,21 +20,10 @@ K5 = nx.Graph()
 K5.add_nodes_from([1,2,3,4,5])
 K5.add_edges_from([(1,2),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5),(3,4),(3,5),(4,5)])
 
-K5var = nx.Graph()
-K5var.add_nodes_from([1,2,3,4,5,6])
-K5var.add_edges_from([(1,2),(1,3),(1,4),(1,5),(2,3),(2,4),(2,5),(3,4),(3,6),(4,5),(5,6)])
-
 K33 = nx.Graph()
 K33.add_nodes_from([1,2,3,4,5,6])
 K33.add_edges_from([(1,4),(1,5),(1,6),(2,4),(2,5),(2,6),(3,4),(3,5),(3,6)])
 
-K33var = nx.Graph()
-K33var.add_nodes_from([1,2,3,4,5,6,7])
-K33var.add_edges_from([(1,4),(1,5),(1,6),(2,4),(2,5),(2,6),(3,4),(3,5),(3,7),(6,7)])
-
-K4 = nx.Graph()
-K4.add_nodes_from([1,2,3,4])
-K4.add_edges_from([(1,2),(1,3),(1,4),(2,3),(2,4),(3,4)])
 
 def drawGraph(graph):
     # This function will draw the graph using the networkx library.
@@ -49,6 +38,10 @@ def isPlanar(graph):
     # We will use these theorems to determine if a graph is planar.
 
     # First we will check Theorem 10.4.
+
+    # Make sure the graph is not disconnected.
+    if not nx.is_connected(graph):
+        return 'Graph is not connected'
 
     n = graph.number_of_nodes()
     m = graph.number_of_edges()
@@ -67,25 +60,33 @@ def isPlanar(graph):
     
     if not vertOfDegreeLEQ5:
         return False
-    
-    # Now we will check Kuratowski's Theorem.
-    # We will do this by checking if the graph contains a subdivision of K5 or K3,3.
 
-    # First we will check for a subdivision of K5.
+    """
+    function checks if graph G has K(5) or K(3,3) as minors,
+    returns True /False on planarity and nodes of "bad_minor"
+    """
+    result=True
+    bad_minor=[]
+    n=len(graph.nodes())
+    if n>5:
+        for subnodes in it.combinations(graph.nodes(),6):
+            subG=graph.subgraph(subnodes)
+            if bipartite.is_bipartite(subG):# check if the graph G has a subgraph K(3,3)
+                X, Y = bipartite.sets(subG)
 
-    for subgraph in combinations(graph.nodes(), 5):
-        if nx.is_connected(graph.subgraph(subgraph)):
-            return False
-    
-    # Now we will check for a subdivision of K3,3.
+                if len(X)==3: 
+                    result=False
+                    # return false as well as each partite set
+                    bad_minor=[X,Y]
+    if n>4 and result:
+        for subnodes in it.combinations(graph.nodes(),5):
+            subG=graph.subgraph(subnodes)
+            if len(subG.edges())==10:# check if the graph G has a subgraph K(5)
+                result=False
+                bad_minor=subnodes
+    return result,bad_minor
 
-    for subgraph in combinations(graph.nodes(), 6):
-        if nx.is_connected(graph.subgraph(subgraph)):
-            if bipartite.is_bipartite(graph.subgraph(subgraph)):
-                return False
-            
-    return True
-    
+
 def graphFromAdjacency(adjacency_matrix):
     # This function will create a graph from an adjacency matrix.
     # The adjacency matrix will be a list of lists.
@@ -106,7 +107,6 @@ def graphFromAdjacency(adjacency_matrix):
     graph.add_edges_from(edges)
 
     return graph
-
 
 
 def randomAdjacencyMatrix(n):
@@ -134,20 +134,6 @@ def randomAdjacencyMatrix(n):
     
 
 def main():
-    #graphFile = open("Graphs.txt", "r")
-
-    # TODO: Read in the graphs from the file and determine if they are planar.
-    # drawGraph(K5)
-    # drawGraph(K5var)
-    # drawGraph(K33)
-    # drawGraph(K33var)
-    # drawGraph(K4)
-    # print("K5 is planar: " + str(isPlanar(K5)))
-    # print("K5var is planar: " + str(isPlanar(K5var)))
-    # print("K33 is planar: " + str(isPlanar(K33)))
-    # print("K33var is planar: " + str(isPlanar(K33var)))
-    # print("K4 is planar: " + str(isPlanar(K4)))
-
 
     for i in range(3):
         # Create random graphs, display them, and determine if they are planar.
@@ -156,7 +142,7 @@ def main():
         print("My random graph is planar: " + str(isPlanar(randomGraph)))
         drawGraph(randomGraph)
 
-    #graphFile.close()
+    print("K5 is planar: " + str(isPlanar(K5)))
 
 if __name__ == "__main__":
     main()
